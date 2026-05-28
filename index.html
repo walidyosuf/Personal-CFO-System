@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام المدير المالي الشخصي (Personal CFO)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- إضافة مكتبة الرسوم البيانية -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <style>
@@ -289,26 +288,32 @@
         </main>
     </div>
 
-    <!-- Application Logic -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        // ==================== إدارة البيانات محلياً (LocalStorage) ====================
+        const STORAGE_KEY_PASSWORD = 'cfo_app_password';
+        const STORAGE_KEY_TRANSACTIONS = 'cfo_app_transactions';
+        
+        // دوال مساعدة للقراءة والكتابة
+        function getStoredPassword() {
+            return localStorage.getItem(STORAGE_KEY_PASSWORD);
+        }
+        function setStoredPassword(password) {
+            localStorage.setItem(STORAGE_KEY_PASSWORD, password);
+        }
+        function getTransactions() {
+            const raw = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
+            return raw ? JSON.parse(raw) : [];
+        }
+        function saveTransactions(transactions) {
+            localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(transactions));
+        }
 
-        // --- Config & State ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        let currentUser = null;
-        let storedPasswordHash = null; 
-        let transactions = [];
-        let unsubscribeTransactions = null;
+        // ==================== المتغيرات العامة ====================
+        let currentPassword = getStoredPassword(); // null اذا لم يتم الاعداد بعد
+        let transactions = getTransactions();
         let sessionUnlocked = false;
 
-        // --- Categories Configuration ---
+        // ==================== الفئات والتصنيفات ====================
         const CATEGORIES = {
             expense: [
                 { id: 'housing', name: 'سكن', color: '#f43f5e' },
@@ -328,25 +333,7 @@
             ]
         };
 
-        let expenseChartInstance = null;
-        let cashflowChartInstance = null;
-
-        // Set default date
-        document.getElementById('tx-date').valueAsDate = new Date();
-        const dateOptions = { month: 'long', year: 'numeric' };
-        document.getElementById('current-month-label').textContent = `بيانات شهر ${new Date().toLocaleDateString('ar-EG', dateOptions)}`;
-
-        // --- UI Helpers ---
-        window.switchTab = (tabName) => {
-            document.getElementById('view-overview').classList.add('hidden');
-            document.getElementById('view-transactions').classList.add('hidden');
-            document.getElementById('tab-overview').classList.remove('nav-active');
-            document.getElementById('tab-transactions').classList.remove('nav-active');
-            
-            document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabName}`).classList.add('nav-active');
-        };
-
+        // ==================== عناصر الواجهة ====================
         const screens = {
             loading: document.getElementById('screen-loading'),
             setup: document.getElementById('screen-setup'),
@@ -373,82 +360,77 @@
             }, 3000);
         }
 
-        // --- Auth & Initial Load ---
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+        // ==================== التهيئة الأولية ====================
+        function initializeApp() {
+            // محاكاة تحميل سريع ثم التحقق من وجود كلمة مرور
+            setTimeout(() => {
+                if (currentPassword) {
+                    // يوجد كلمة مرور -> شاشة تسجيل الدخول
+                    showScreen('login');
                 } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Auth error:", error);
-                showToast("فشل في تهيئة النظام.", "error");
-            }
-        };
-        initAuth();
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                checkUserStatus();
-            } else {
-                showScreen('loading');
-            }
-        });
-
-        async function checkUserStatus() {
-            if (!currentUser) return;
-            try {
-                const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'profile');
-                const profileSnap = await getDoc(profileRef);
-
-                if (profileSnap.exists() && profileSnap.data().password) {
-                    storedPasswordHash = profileSnap.data().password;
-                    if(sessionUnlocked) launchDashboard();
-                    else showScreen('login');
-                } else {
+                    // لا يوجد -> إعداد كلمة مرور جديدة
                     showScreen('setup');
                 }
-            } catch (err) {
-                showToast("خطأ في الاتصال بقاعدة البيانات.", "error");
-            }
+            }, 500); // إعطاء تأثير التحميل البسيط
         }
 
-        // --- Auth Forms ---
-        document.getElementById('setup-form').addEventListener('submit', async (e) => {
+        // ==================== إعداد كلمة المرور وتسجيل الدخول ====================
+        document.getElementById('setup-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            const pass = document.getElementById('setup-password').value;
-            if (pass !== document.getElementById('setup-confirm').value) return showToast("الرمز غير متطابق", "error");
-            if (pass.length < 4) return showToast("الرمز يجب أن يكون 4 خانات على الأقل", "error");
-            try {
-                const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'profile');
-                await setDoc(profileRef, { password: pass });
-                storedPasswordHash = pass;
-                sessionUnlocked = true;
-                launchDashboard();
-            } catch (err) { showToast("حدث خطأ أثناء الحفظ", "error"); }
+            const pass = document.getElementById('setup-password').value.trim();
+            const confirm = document.getElementById('setup-confirm').value.trim();
+            
+            if (pass !== confirm) {
+                showToast('الرمز غير متطابق', 'error');
+                return;
+            }
+            if (pass.length < 4) {
+                showToast('الرمز يجب أن يكون 4 خانات على الأقل', 'error');
+                return;
+            }
+            
+            // حفظ كلمة المرور محلياً
+            setStoredPassword(pass);
+            currentPassword = pass;
+            sessionUnlocked = true;
+            
+            // تنظيف الحقول
+            document.getElementById('setup-password').value = '';
+            document.getElementById('setup-confirm').value = '';
+            
+            launchDashboard();
         });
 
-        document.getElementById('login-form').addEventListener('submit', (e) => {
+        document.getElementById('login-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            const pass = document.getElementById('login-password').value;
-            if (pass === storedPasswordHash) {
+            const pass = document.getElementById('login-password').value.trim();
+            
+            if (pass === currentPassword) {
                 sessionUnlocked = true;
                 document.getElementById('login-password').value = '';
                 launchDashboard();
             } else {
-                showToast("الرمز السري غير صحيح", "error");
+                showToast('الرمز السري غير صحيح', 'error');
             }
         });
 
-        document.getElementById('btn-logout').addEventListener('click', () => {
+        document.getElementById('btn-logout').addEventListener('click', function() {
             sessionUnlocked = false;
-            if(unsubscribeTransactions) unsubscribeTransactions();
             showScreen('login');
         });
 
-        // --- Category Selection Logic ---
+        // ==================== التبديل بين التبويبات ====================
+        window.switchTab = function(tabName) {
+            document.getElementById('view-overview').classList.add('hidden');
+            document.getElementById('view-transactions').classList.add('hidden');
+            document.getElementById('tab-overview').classList.remove('nav-active');
+            document.getElementById('tab-transactions').classList.remove('nav-active');
+            
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}`).classList.add('nav-active');
+        };
+
+        // ==================== إدارة التصنيفات في النموذج ====================
         const typeRadios = document.querySelectorAll('input[name="tx-type"]');
         const categorySelect = document.getElementById('tx-category');
 
@@ -463,46 +445,57 @@
             });
         }
         typeRadios.forEach(radio => radio.addEventListener('change', updateCategoryDropdown));
-        // Init dropdown
-        updateCategoryDropdown();
+        updateCategoryDropdown(); // تعبئة أولية
 
-        // --- Data Fetching & Dashboard Logic ---
+        // ==================== تشغيل لوحة التحكم ====================
         function launchDashboard() {
             showScreen('dashboard');
-            Chart.defaults.font.family = "'Tajawal', sans-serif"; // Set Chart font
-            loadTransactions();
-        }
-
-        function loadTransactions() {
-            if (!currentUser) return;
-            const transactionsRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'transactions');
+            // تحديث التاريخ المعروض
+            document.getElementById('current-month-label').textContent = 
+                `بيانات شهر ${new Date().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })}`;
+            // تحديث تاريخ النموذج لليوم
+            document.getElementById('tx-date').valueAsDate = new Date();
             
-            unsubscribeTransactions = onSnapshot(transactionsRef, (snapshot) => {
-                transactions = [];
-                snapshot.forEach(doc => transactions.push({ id: doc.id, ...doc.data() }));
-                transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-                updateAppCFO();
-            }, (error) => {
-                console.error("Snapshot error:", error);
-                showToast("خطأ في جلب البيانات.", "error");
-            });
+            // ضبط خط الرسوم البيانية
+            if (Chart.defaults.font) {
+                Chart.defaults.font.family = "'Tajawal', sans-serif";
+            }
+            
+            // تحميل البيانات وعرضها
+            refreshDataAndUI();
         }
 
-        function getCategoryDetails(type, catId) {
-            const list = CATEGORIES[type] || [];
-            return list.find(c => c.id === catId) || { name: catId, color: '#94a3b8' };
+        // ==================== دوال إدارة المعاملات ====================
+        function addTransactionLocally(txData) {
+            const newTx = {
+                id: Date.now().toString(), // معرف فريد بسيط
+                type: txData.type,
+                category: txData.category,
+                amount: parseFloat(txData.amount),
+                description: txData.description,
+                date: txData.date,
+                createdAt: new Date().toISOString()
+            };
+            transactions.push(newTx);
+            saveTransactions(transactions);
+            refreshDataAndUI();
         }
 
-        function updateAppCFO() {
+        function deleteTransactionLocally(id) {
+            transactions = transactions.filter(tx => tx.id !== id);
+            saveTransactions(transactions);
+            refreshDataAndUI();
+        }
+
+        // ==================== عرض البيانات في الواجهة ====================
+        function refreshDataAndUI() {
+            // ترتيب المعاملات تنازلياً حسب التاريخ
+            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
             renderTransactionsList();
             calculateAndRenderKPIs();
         }
 
-        function formatMoney(amount) {
-            return parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        // --- Render List ---
+        // عرض قائمة المعاملات
         function renderTransactionsList() {
             const listContainer = document.getElementById('transactions-list');
             const emptyState = document.getElementById('empty-state');
@@ -532,7 +525,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h4 class="font-bold text-slate-700 text-sm">${tx.description}</h4>
+                            <h4 class="font-bold text-slate-700 text-sm">${escapeHTML(tx.description)}</h4>
                             <div class="flex gap-2 text-xs mt-0.5">
                                 <span class="text-slate-400">${new Date(tx.date).toLocaleDateString('ar-EG')}</span>
                                 <span class="text-slate-300">•</span>
@@ -552,12 +545,34 @@
                 listContainer.appendChild(item);
             });
 
+            // أحداث الحذف
             document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => deleteTransaction(e.currentTarget.getAttribute('data-id')));
+                btn.addEventListener('click', function(e) {
+                    const id = this.getAttribute('data-id');
+                    if (confirm('هل أنت متأكد من حذف هذه المعاملة؟')) {
+                        deleteTransactionLocally(id);
+                        showToast('تم الحذف بنجاح', 'success');
+                    }
+                });
             });
         }
 
-        // --- CFO Calculations & Charts ---
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function getCategoryDetails(type, catId) {
+            const list = CATEGORIES[type] || [];
+            return list.find(c => c.id === catId) || { name: catId, color: '#94a3b8' };
+        }
+
+        function formatMoney(amount) {
+            return parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // ==================== الحسابات والرسوم البيانية ====================
         function calculateAndRenderKPIs() {
             let totalNetWorth = 0;
             let currentMonthIncome = 0;
@@ -567,12 +582,11 @@
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
 
-            // Data aggregations for charts
-            const expenseBreakdown = {}; 
-            const cashflowTrend = {}; // Key: "YYYY-MM"
+            const expenseBreakdown = {};
+            const cashflowTrend = {};
 
-            // Init last 6 months for cashflow trend to ensure they exist in chart even if empty
-            for(let i=5; i>=0; i--) {
+            // تهيئة آخر 6 أشهر
+            for(let i = 5; i >= 0; i--) {
                 let d = new Date(currentYear, currentMonth - i, 1);
                 let key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
                 cashflowTrend[key] = { inc: 0, exp: 0, label: d.toLocaleDateString('ar-EG', {month:'short'}) };
@@ -584,33 +598,28 @@
                 const isCurrentMonth = txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
                 const monthKey = `${txDate.getFullYear()}-${String(txDate.getMonth()+1).padStart(2,'0')}`;
 
-                // Overall
                 if (tx.type === 'income') totalNetWorth += amt;
                 else totalNetWorth -= amt;
 
-                // Current Month
                 if (isCurrentMonth) {
                     if (tx.type === 'income') currentMonthIncome += amt;
                     else {
                         currentMonthExpense += amt;
-                        // Build expense breakdown
                         expenseBreakdown[tx.category] = (expenseBreakdown[tx.category] || 0) + amt;
                     }
                 }
 
-                // Trend
                 if (cashflowTrend[monthKey]) {
                     if (tx.type === 'income') cashflowTrend[monthKey].inc += amt;
                     else cashflowTrend[monthKey].exp += amt;
                 }
             });
 
-            // Update DOM KPIs
+            // تحديث واجهة KPI
             document.getElementById('kpi-networth').innerHTML = `${formatMoney(totalNetWorth)} <span class="text-sm font-normal text-slate-400">ج.م</span>`;
-            document.getElementById('kpi-income').innerHTML = `${formatMoney(currentMonthIncome)}`;
-            document.getElementById('kpi-expense').innerHTML = `${formatMoney(currentMonthExpense)}`;
+            document.getElementById('kpi-income').textContent = formatMoney(currentMonthIncome);
+            document.getElementById('kpi-expense').textContent = formatMoney(currentMonthExpense);
             
-            // Savings Rate = (Income - Expense) / Income
             let savingsRate = 0;
             if (currentMonthIncome > 0) {
                 savingsRate = ((currentMonthIncome - currentMonthExpense) / currentMonthIncome) * 100;
@@ -619,10 +628,7 @@
             savingsEl.innerHTML = `${Math.max(0, savingsRate).toFixed(1)}%`;
             savingsEl.className = `text-xl font-bold ${savingsRate >= 20 ? 'text-blue-600' : (savingsRate > 0 ? 'text-amber-500' : 'text-rose-500')}`;
 
-            // Generate CFO Insight
             generateInsight(expenseBreakdown, currentMonthIncome, currentMonthExpense, savingsRate);
-
-            // Render Charts
             renderExpenseChart(expenseBreakdown);
             renderCashflowChart(cashflowTrend);
         }
@@ -630,7 +636,7 @@
         function generateInsight(breakdown, income, expense, savingsRate) {
             const insightEl = document.getElementById('cfo-insight-text');
             if (income === 0 && expense === 0) {
-                insightEl.textContent = "أهلاً بك في نظام المدير المالي. قم بإضافة بياناتك للبدء في التحليل.";
+                insightEl.textContent = 'أهلاً بك في نظام المدير المالي. قم بإضافة بياناتك للبدء في التحليل.';
                 return;
             }
 
@@ -640,7 +646,7 @@
                 if (amt > maxAmount) { maxAmount = amt; maxCategory = cat; }
             }
 
-            let message = "";
+            let message = '';
             if (expense > income) {
                 message = `تحذير مالي: مصروفاتك هذا الشهر تتجاوز دخلك بمقدار ${formatMoney(expense - income)} ج.م. `;
             } else if (savingsRate >= 20) {
@@ -658,7 +664,10 @@
             insightEl.innerHTML = message;
         }
 
-        // --- Charting ---
+        // ==================== الرسوم البيانية ====================
+        let expenseChartInstance = null;
+        let cashflowChartInstance = null;
+
         function renderExpenseChart(breakdownData) {
             const ctx = document.getElementById('expenseChart').getContext('2d');
             const emptyLabel = document.getElementById('expenseChartEmpty');
@@ -704,7 +713,6 @@
             const incData = [];
             const expData = [];
 
-            // Sort keys chronologically
             Object.keys(trendData).sort().forEach(key => {
                 labels.push(trendData[key].label);
                 incData.push(trendData[key].inc);
@@ -731,51 +739,48 @@
             });
         }
 
-        // --- Create / Delete ---
-        document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+        // ==================== معالجة نموذج المعاملة ====================
+        document.getElementById('transaction-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!currentUser) return;
-
-            const btn = document.getElementById('btn-save-tx');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<span class="animate-pulse">جاري التسجيل...</span>';
-            btn.disabled = true;
-
+            
             const type = document.querySelector('input[name="tx-type"]:checked').value;
             const category = document.getElementById('tx-category').value;
             const amount = document.getElementById('tx-amount').value;
-            const desc = document.getElementById('tx-desc').value;
+            const desc = document.getElementById('tx-desc').value.trim();
             const date = document.getElementById('tx-date').value;
-
-            try {
-                const transactionsRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'transactions');
-                await addDoc(transactionsRef, {
-                    type, category, amount: parseFloat(amount), description: desc, date,
-                    createdAt: new Date().toISOString()
-                });
-
+            
+            if (!amount || parseFloat(amount) <= 0) {
+                showToast('يرجى إدخال مبلغ صحيح', 'error');
+                return;
+            }
+            if (!desc) {
+                showToast('يرجى كتابة وصف للمعاملة', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('btn-save-tx');
+            const originalText = btn.textContent;
+            btn.textContent = 'جاري الحفظ...';
+            btn.disabled = true;
+            
+            // محاكاة تأخير بسيط (اختياري)
+            setTimeout(() => {
+                addTransactionLocally({ type, category, amount, description: desc, date });
+                // تنظيف الحقول
                 document.getElementById('tx-amount').value = '';
                 document.getElementById('tx-desc').value = '';
                 document.getElementById('tx-amount').focus();
-                showToast("تم تسجيل المعاملة", "success");
-            } catch (err) {
-                showToast("حدث خطأ أثناء الحفظ", "error");
-            } finally {
-                btn.innerHTML = originalText;
+                showToast('تم تسجيل المعاملة بنجاح', 'success');
+                
+                btn.textContent = originalText;
                 btn.disabled = false;
-            }
+            }, 100);
         });
 
-        window.deleteTransaction = async function(id) {
-            if (!currentUser) return;
-            try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'transactions', id));
-                showToast("تم الحذف بنجاح", "success");
-            } catch (err) {
-                showToast("حدث خطأ أثناء الحذف", "error");
-            }
-        }
-
+        // ==================== بدء التطبيق ====================
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
     </script>
 </body>
 </html>
