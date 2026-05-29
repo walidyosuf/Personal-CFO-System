@@ -1,22 +1,48 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام المدير المالي الشخصي (Personal CFO)</title>
+    <title>نظام المدير المالي الشخصي (Personal CFO) - الإصدار المتطور</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Tajawal', sans-serif;
             background-color: #f0f2f5;
+            transition: background-color 0.3s;
         }
+        .dark body, .dark .bg-slate-100, .dark .bg-slate-50 { background-color: #1e293b !important; }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.98);
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            color: #e2e8f0;
+        }
+        .dark .text-slate-800 { color: #e2e8f0 !important; }
+        .dark .text-slate-700 { color: #cbd5e1 !important; }
+        .dark .text-slate-600 { color: #94a3b8 !important; }
+        .dark .text-slate-500 { color: #64748b !important; }
+        .dark .text-slate-400 { color: #475569 !important; }
+        .dark .border-slate-200, .dark .border-slate-100 { border-color: #334155 !important; }
+        .dark .bg-white { background-color: #0f172a !important; }
+        .dark .bg-slate-50 { background-color: #1e293b !important; }
+        .dark .hover\:bg-slate-50:hover { background-color: #334155 !important; }
+        .dark .nav-active { background-color: #1e3a5f; color: #3b82f6; }
         .glass-panel {
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border-radius: 1rem;
+            transition: background 0.3s, border-color 0.3s, color 0.3s;
         }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -29,757 +55,823 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex items-center justify-center">
 
-    <!-- Toast Notifications -->
+    <!-- Toast Container -->
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Screen: Loading -->
-    <div id="screen-loading" class="w-full h-screen flex flex-col items-center justify-center bg-slate-50 absolute z-50">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-slate-800 mb-4"></div>
-        <p class="text-lg font-bold text-slate-700">تهيئة نظام المدير المالي...</p>
+    <!-- Loading Screen -->
+    <div id="screen-loading" class="w-full h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 absolute z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-slate-800 dark:border-slate-200 mb-4"></div>
+        <p class="text-lg font-bold text-slate-700 dark:text-slate-200">تهيئة نظام المدير المالي...</p>
     </div>
 
-    <!-- Screen: Setup -->
+    <!-- Setup Screen -->
     <div id="screen-setup" class="hidden w-full max-w-md p-6 absolute z-40">
-        <div class="glass-panel rounded-2xl p-8 text-center">
-            <div class="w-20 h-20 bg-slate-100 text-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-200">
+        <div class="glass-panel p-8 text-center">
+            <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-200 dark:border-slate-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
             </div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">إعداد الخزنة</h2>
-            <p class="text-slate-500 mb-8 text-sm">قم بتعيين رمز سري قوي لحماية بياناتك المالية الاستراتيجية.</p>
-            
+            <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">إعداد الخزنة</h2>
+            <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm">قم بتعيين رمز سري قوي لحماية بياناتك المالية.</p>
             <form id="setup-form" class="space-y-4">
-                <input type="password" id="setup-password" required placeholder="الرمز السري الجديد" 
-                    class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all text-center font-bold tracking-widest">
-                <input type="password" id="setup-confirm" required placeholder="تأكيد الرمز السري" 
-                    class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all text-center font-bold tracking-widest">
-                <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg mt-2">
+                <input type="password" id="setup-password" required placeholder="الرمز السري الجديد"
+                    class="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-slate-800 dark:focus:ring-slate-400 outline-none transition-all text-center font-bold tracking-widest dark:text-white">
+                <input type="password" id="setup-confirm" required placeholder="تأكيد الرمز السري"
+                    class="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-slate-800 dark:focus:ring-slate-400 outline-none transition-all text-center font-bold tracking-widest dark:text-white">
+                <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 dark:bg-slate-600 dark:hover:bg-slate-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg mt-2">
                     تأسيس النظام
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- Screen: Login -->
+    <!-- Login Screen -->
     <div id="screen-login" class="hidden w-full max-w-md p-6 absolute z-40">
-        <div class="glass-panel rounded-2xl p-8 text-center">
-            <div class="w-20 h-20 bg-blue-50 text-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-blue-100">
+        <div class="glass-panel p-8 text-center">
+            <div class="w-20 h-20 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-blue-100 dark:border-blue-800">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
             </div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">تسجيل الدخول (CFO)</h2>
-            <p class="text-slate-500 mb-8 text-sm">أدخل الرمز السري للوصول للوحة التحكم.</p>
-            
+            <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">تسجيل الدخول (CFO)</h2>
+            <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm">أدخل الرمز السري للوصول للوحة التحكم.</p>
             <form id="login-form" class="space-y-4">
-                <input type="password" id="login-password" required placeholder="الرمز السري" 
-                    class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all text-center font-bold tracking-widest">
-                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg mt-2">
+                <input type="password" id="login-password" required placeholder="الرمز السري"
+                    class="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 outline-none transition-all text-center font-bold tracking-widest dark:text-white">
+                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg mt-2">
                     دخول
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- Screen: Dashboard (App Layout) -->
-    <div id="screen-dashboard" class="hidden w-full h-screen bg-slate-100 flex flex-col md:flex-row overflow-hidden relative z-30">
-        
-        <!-- Sidebar Navigation -->
-        <aside class="w-full md:w-64 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 z-20">
-            <div class="p-6 border-b border-slate-100 flex items-center gap-3">
-                <div class="w-10 h-10 bg-slate-800 text-white rounded-lg flex items-center justify-center font-bold text-xl">
-                    CFO
-                </div>
+    <!-- Dashboard -->
+    <div id="screen-dashboard" class="hidden w-full h-screen bg-slate-100 dark:bg-slate-900 flex flex-col md:flex-row overflow-hidden relative z-30">
+        <!-- Sidebar -->
+        <aside class="w-full md:w-64 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 z-20">
+            <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+                <div class="w-10 h-10 bg-slate-800 dark:bg-slate-600 text-white rounded-lg flex items-center justify-center font-bold text-xl">CFO</div>
                 <div>
-                    <h1 class="font-bold text-slate-800">المدير المالي</h1>
-                    <p class="text-xs text-slate-500">لوحة التحكم الشخصية</p>
+                    <h1 class="font-bold text-slate-800 dark:text-slate-200">المدير المالي</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">لوحة التحكم الشخصية</p>
                 </div>
             </div>
             <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                <button onclick="switchTab('overview')" id="tab-overview" class="nav-active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium transition-colors hover:bg-slate-50">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                <button onclick="switchTab('overview')" id="tab-overview" class="nav-active w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                     نظرة عامة
                 </button>
-                <button onclick="switchTab('transactions')" id="tab-transactions" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium transition-colors hover:bg-slate-50">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                <button onclick="switchTab('transactions')" id="tab-transactions" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                     إدارة المعاملات
                 </button>
+                <button onclick="switchTab('budget')" id="tab-budget" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    الميزانية
+                </button>
+                <button onclick="switchTab('categories')" id="tab-categories" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    إدارة الفئات
+                </button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    الإعدادات
+                </button>
             </nav>
-            <div class="p-4 border-t border-slate-100">
-                <button id="btn-logout" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors font-medium text-sm border border-rose-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            <div class="p-4 border-t border-slate-100 dark:border-slate-700">
+                <button id="btn-logout" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900 transition-colors font-medium text-sm border border-rose-100 dark:border-rose-900">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                     قفل الخزنة
                 </button>
             </div>
         </aside>
 
-        <!-- Main Content Area -->
+        <!-- Main Content -->
         <main class="flex-1 overflow-y-auto p-4 md:p-8">
-            
-            <!-- VIEW: Overview -->
+            <!-- Overview Tab -->
             <div id="view-overview" class="space-y-6 max-w-6xl mx-auto">
                 <div class="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-2">
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-800">التحليل المالي</h2>
-                        <p class="text-slate-500 text-sm mt-1" id="current-month-label">بيانات الشهر الحالي</p>
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200">التحليل المالي</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm mt-1" id="current-month-label">بيانات الشهر الحالي</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="printReport()" class="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm">طباعة التقرير</button>
+                        <button id="btn-toggle-dark" class="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm">الوضع الليلي</button>
                     </div>
                 </div>
 
                 <!-- KPI Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Net Worth -->
-                    <div class="glass-panel p-5 rounded-2xl stat-card border-t-4 border-slate-800">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-slate-500 text-sm font-medium">صافي الثروة</p>
-                            <span class="bg-slate-100 text-slate-600 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
-                        </div>
-                        <h3 id="kpi-networth" class="text-2xl font-bold text-slate-800" dir="ltr">0.00</h3>
-                    </div>
-                    <!-- Monthly Cash In -->
-                    <div class="glass-panel p-5 rounded-2xl stat-card border-t-4 border-emerald-500">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-slate-500 text-sm font-medium">مداخيل الشهر</p>
-                            <span class="bg-emerald-50 text-emerald-600 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg></span>
-                        </div>
-                        <h3 id="kpi-income" class="text-xl font-bold text-emerald-600" dir="ltr">0.00</h3>
-                    </div>
-                    <!-- Monthly Cash Out -->
-                    <div class="glass-panel p-5 rounded-2xl stat-card border-t-4 border-rose-500">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-slate-500 text-sm font-medium">مصروفات الشهر</p>
-                            <span class="bg-rose-50 text-rose-600 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg></span>
-                        </div>
-                        <h3 id="kpi-expense" class="text-xl font-bold text-rose-600" dir="ltr">0.00</h3>
-                    </div>
-                    <!-- Savings Rate -->
-                    <div class="glass-panel p-5 rounded-2xl stat-card border-t-4 border-blue-500">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-slate-500 text-sm font-medium">معدل الادخار</p>
-                            <span class="bg-blue-50 text-blue-600 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></span>
-                        </div>
-                        <h3 id="kpi-savings" class="text-xl font-bold text-blue-600" dir="ltr">0%</h3>
-                    </div>
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-container"></div>
 
                 <!-- Charts & Insights -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- CFO Insight AI -->
-                    <div class="lg:col-span-3 glass-panel rounded-2xl p-5 border border-indigo-100 bg-gradient-to-l from-indigo-50 to-white">
+                    <div class="lg:col-span-3 glass-panel p-5 border border-indigo-100 dark:border-indigo-800 bg-gradient-to-l from-indigo-50 dark:from-indigo-900 to-white dark:to-slate-800">
                         <div class="flex items-start gap-4">
-                            <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                                <span class="text-2xl">💡</span>
-                            </div>
+                            <div class="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center shrink-0"><span class="text-2xl">💡</span></div>
                             <div>
-                                <h3 class="font-bold text-indigo-900 mb-1">رؤية المدير المالي</h3>
-                                <p id="cfo-insight-text" class="text-slate-600 text-sm leading-relaxed">جاري تحليل بياناتك...</p>
+                                <h3 class="font-bold text-indigo-900 dark:text-indigo-200 mb-1">رؤية المدير المالي</h3>
+                                <p id="cfo-insight-text" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">جاري تحليل بياناتك...</p>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Chart: Expense Breakdown -->
-                    <div class="lg:col-span-1 glass-panel rounded-2xl p-6">
-                        <h3 class="font-bold text-slate-800 mb-4 text-sm">توزيع المصروفات (الشهر الحالي)</h3>
-                        <div class="relative h-48 w-full flex items-center justify-center">
-                            <canvas id="expenseChart"></canvas>
-                            <p id="expenseChartEmpty" class="absolute text-slate-400 text-sm hidden">لا توجد مصروفات</p>
-                        </div>
-                    </div>
-
-                    <!-- Chart: Cashflow Trend -->
-                    <div class="lg:col-span-2 glass-panel rounded-2xl p-6">
-                        <h3 class="font-bold text-slate-800 mb-4 text-sm">التدفق النقدي (آخر 6 أشهر)</h3>
-                        <div class="relative h-48 w-full">
-                            <canvas id="cashflowChart"></canvas>
-                        </div>
-                    </div>
+                    <div class="lg:col-span-1 glass-panel p-6"><h3 class="font-bold text-slate-800 dark:text-slate-200 mb-4 text-sm">توزيع المصروفات (الشهر الحالي)</h3><div class="relative h-48 w-full flex items-center justify-center"><canvas id="expenseChart"></canvas><p id="expenseChartEmpty" class="absolute text-slate-400 dark:text-slate-500 text-sm hidden">لا توجد مصروفات</p></div></div>
+                    <div class="lg:col-span-2 glass-panel p-6"><h3 class="font-bold text-slate-800 dark:text-slate-200 mb-4 text-sm">التدفق النقدي (آخر 6 أشهر)</h3><div class="relative h-48 w-full"><canvas id="cashflowChart"></canvas></div></div>
+                    <div class="lg:col-span-3 glass-panel p-6"><h3 class="font-bold text-slate-800 dark:text-slate-200 mb-4 text-sm">صافي الثروة مع مرور الوقت</h3><div class="relative h-48 w-full"><canvas id="networthChart"></canvas></div></div>
                 </div>
             </div>
 
-            <!-- VIEW: Transactions -->
+            <!-- Transactions Tab -->
             <div id="view-transactions" class="hidden space-y-6 max-w-6xl mx-auto">
-                <div class="mb-4">
-                    <h2 class="text-2xl font-bold text-slate-800">إدارة المعاملات</h2>
-                    <p class="text-slate-500 text-sm mt-1">سجل تفاصيل أموالك الواردة والصادرة بدقة</p>
-                </div>
-
+                <div class="mb-4"><h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200">إدارة المعاملات</h2><p class="text-slate-500 dark:text-slate-400 text-sm mt-1">سجل تفاصيل أموالك الواردة والصادرة بدقة</p></div>
+                <div class="flex justify-end mb-4"><input type="month" id="filter-month" class="border rounded-lg px-3 py-2 dark:bg-slate-700 dark:text-white" /></div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Form -->
-                    <div class="lg:col-span-1">
-                        <div class="glass-panel rounded-2xl p-6 sticky top-0 border-t-4 border-blue-600">
-                            <h3 class="font-bold text-slate-800 mb-5 border-b border-slate-100 pb-2">تسجيل معاملة</h3>
-                            <form id="transaction-form" class="space-y-4">
-                                
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">النوع</label>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="tx-type" value="income" class="peer sr-only">
-                                            <div class="text-center px-3 py-2 rounded-lg border border-slate-200 peer-checked:bg-emerald-500 peer-checked:border-emerald-600 peer-checked:text-white transition-all text-sm font-medium text-slate-600">
-                                                دخل (+)
-                                            </div>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="tx-type" value="expense" class="peer sr-only" checked>
-                                            <div class="text-center px-3 py-2 rounded-lg border border-slate-200 peer-checked:bg-rose-500 peer-checked:border-rose-600 peer-checked:text-white transition-all text-sm font-medium text-slate-600">
-                                                مصروف (-)
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">التصنيف</label>
-                                    <select id="tx-category" required class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
-                                        <!-- Populated via JS -->
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">المبلغ (ج.م)</label>
-                                    <input type="number" id="tx-amount" required min="0.01" step="0.01" placeholder="0.00" 
-                                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold" dir="ltr">
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">البيان / الوصف</label>
-                                    <input type="text" id="tx-desc" required placeholder="مثال: فاتورة الكهرباء..." 
-                                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">التاريخ</label>
-                                    <input type="date" id="tx-date" required 
-                                        class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
-                                </div>
-
-                                <button type="submit" id="btn-save-tx" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md mt-4 text-sm">
-                                    تأكيد وحفظ
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- History -->
-                    <div class="lg:col-span-2">
-                        <div class="glass-panel rounded-2xl p-6 min-h-[500px]">
-                            <div class="flex justify-between items-center mb-5 border-b border-slate-100 pb-2">
-                                <h3 class="font-bold text-slate-800">السجل التفصيلي</h3>
-                                <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-md" id="tx-count">0 معاملة</span>
-                            </div>
-                            
-                            <!-- List -->
-                            <div id="transactions-list" class="space-y-2">
-                                <!-- Items injected here -->
-                            </div>
-                            
-                            <!-- Empty -->
-                            <div id="empty-state" class="hidden flex-col items-center justify-center py-12 text-center">
-                                <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                                    <svg class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                </div>
-                                <p class="text-slate-400 text-sm">السجل فارغ. ابدأ بتسجيل معاملاتك.</p>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="lg:col-span-1"><div class="glass-panel p-6 sticky top-0 border-t-4 border-blue-600"><h3 class="font-bold text-slate-800 dark:text-slate-200 mb-5 border-b pb-2">تسجيل معاملة</h3><form id="transaction-form" class="space-y-4">
+                        <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">النوع</label><div class="grid grid-cols-2 gap-2"><label class="cursor-pointer"><input type="radio" name="tx-type" value="income" class="peer sr-only"><div class="text-center px-3 py-2 rounded-lg border peer-checked:bg-emerald-500 peer-checked:text-white transition-all text-sm">دخل (+)</div></label><label class="cursor-pointer"><input type="radio" name="tx-type" value="expense" class="peer sr-only" checked><div class="text-center px-3 py-2 rounded-lg border peer-checked:bg-rose-500 peer-checked:text-white transition-all text-sm">مصروف (-)</div></label></div></div>
+                        <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">التصنيف</label><select id="tx-category" required class="w-full px-3 py-2.5 rounded-xl border dark:bg-slate-700 dark:text-white"></select></div>
+                        <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">المبلغ (<span id="currency-symbol">ج.م</span>)</label><input type="number" id="tx-amount" required min="0.01" step="0.01" class="w-full px-3 py-2.5 rounded-xl border dark:bg-slate-700 dark:text-white font-bold" dir="ltr"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">البيان</label><input type="text" id="tx-desc" required class="w-full px-3 py-2.5 rounded-xl border dark:bg-slate-700 dark:text-white"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">التاريخ</label><input type="date" id="tx-date" required class="w-full px-3 py-2.5 rounded-xl border dark:bg-slate-700 dark:text-white"></div>
+                        <div class="flex items-center gap-2"><input type="checkbox" id="tx-recurring" class="rounded"><label for="tx-recurring" class="text-sm">متكرر شهرياً</label></div>
+                        <input type="hidden" id="tx-edit-id" />
+                        <button type="submit" id="btn-save-tx" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl">تأكيد وحفظ</button>
+                    </form></div></div>
+                    <div class="lg:col-span-2"><div class="glass-panel p-6 min-h-[500px]"><div class="flex justify-between items-center mb-5 border-b pb-2"><h3 class="font-bold text-slate-800 dark:text-slate-200">السجل التفصيلي</h3><span id="tx-count" class="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md">0 معاملة</span></div><div id="transactions-list" class="space-y-2"></div><div id="empty-state" class="hidden flex-col items-center justify-center py-12 text-center"><p class="text-slate-400 dark:text-slate-500">السجل فارغ. ابدأ بتسجيل معاملاتك.</p></div></div></div>
                 </div>
             </div>
 
+            <!-- Budget Tab -->
+            <div id="view-budget" class="hidden space-y-6 max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-4">الميزانية الشهرية للفئات</h2>
+                <div id="budget-list" class="space-y-4"></div>
+                <div class="glass-panel p-4"><h3 class="font-bold mb-2 text-slate-800 dark:text-slate-200">إضافة/تعديل ميزانية</h3><div class="flex gap-2"><select id="budget-category-select" class="border rounded-lg px-3 py-2 dark:bg-slate-700 dark:text-white"></select><input type="number" id="budget-amount-input" placeholder="الحد" class="border rounded-lg px-3 py-2 dark:bg-slate-700 dark:text-white"><button id="save-budget-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg">حفظ</button></div></div>
+            </div>
+
+            <!-- Categories Tab -->
+            <div id="view-categories" class="hidden space-y-6 max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-4">إدارة الفئات</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="categories-container"></div>
+                <div class="glass-panel p-4"><h3 class="font-bold mb-2 text-slate-800 dark:text-slate-200">إضافة فئة جديدة</h3><div class="flex gap-2 flex-wrap"><input id="new-cat-name" placeholder="اسم الفئة" class="border rounded-lg px-3 py-2 dark:bg-slate-700 dark:text-white"><input id="new-cat-emoji" placeholder="أيقونة (emoji)" class="border rounded-lg px-3 py-2 w-20 dark:bg-slate-700 dark:text-white"><input type="color" id="new-cat-color" value="#3b82f6"><select id="new-cat-type" class="border rounded-lg dark:bg-slate-700 dark:text-white"><option value="expense">مصروف</option><option value="income">دخل</option></select><button id="add-category-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg">إضافة</button></div></div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="view-settings" class="hidden space-y-6 max-w-2xl mx-auto">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-4">الإعدادات</h2>
+                <div class="glass-panel p-6 space-y-6">
+                    <div><h3 class="font-bold text-lg mb-2">تغيير كلمة المرور</h3><input type="password" id="old-password" placeholder="كلمة المرور الحالية" class="w-full border rounded-lg px-3 py-2 mb-2 dark:bg-slate-700 dark:text-white"><input type="password" id="new-password" placeholder="كلمة المرور الجديدة" class="w-full border rounded-lg px-3 py-2 mb-2 dark:bg-slate-700 dark:text-white"><button id="change-password-btn" class="bg-yellow-600 text-white px-4 py-2 rounded-lg">تغيير</button></div>
+                    <div><h3 class="font-bold text-lg mb-2">رمز العملة</h3><input id="currency-input" placeholder="مثلاً: ج.م, $" class="border rounded-lg px-3 py-2 dark:bg-slate-700 dark:text-white"><button id="save-currency-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg mt-2">حفظ</button></div>
+                    <div><h3 class="font-bold text-lg mb-2">القفل التلقائي (دقائق)</h3><input type="number" id="auto-lock-timeout" min="1" value="5" class="border rounded-lg px-3 py-2 dark:bg-slate-700 dark:text-white"><button id="save-timeout-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg mt-2">حفظ</button></div>
+                    <div class="flex gap-4"><button id="export-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">تصدير البيانات (JSON)</button><button id="import-btn" class="bg-teal-600 text-white px-4 py-2 rounded-lg">استيراد البيانات</button><input type="file" id="import-file" accept=".json" class="hidden"></div>
+                    <div><button id="delete-all-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg">حذف جميع البيانات</button></div>
+                    <div><label class="flex items-center gap-2"><input type="checkbox" id="notifications-checkbox"> تفعيل الإشعارات الأسبوعية</label></div>
+                </div>
+            </div>
         </main>
     </div>
 
     <script>
-        // ==================== إدارة البيانات محلياً (LocalStorage) ====================
-        const STORAGE_KEY_PASSWORD = 'cfo_app_password';
-        const STORAGE_KEY_TRANSACTIONS = 'cfo_app_transactions';
-        
-        // دوال مساعدة للقراءة والكتابة
-        function getStoredPassword() {
-            return localStorage.getItem(STORAGE_KEY_PASSWORD);
-        }
-        function setStoredPassword(password) {
-            localStorage.setItem(STORAGE_KEY_PASSWORD, password);
-        }
-        function getTransactions() {
-            const raw = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
-            return raw ? JSON.parse(raw) : [];
-        }
-        function saveTransactions(transactions) {
-            localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(transactions));
-        }
-
-        // ==================== المتغيرات العامة ====================
-        let currentPassword = getStoredPassword(); // null اذا لم يتم الاعداد بعد
-        let transactions = getTransactions();
-        let sessionUnlocked = false;
-
-        // ==================== الفئات والتصنيفات ====================
-        const CATEGORIES = {
+        // ========== CONSTANTS & STATE ==========
+        const STORAGE_META_KEY = 'cfo_meta';
+        const STORAGE_DATA_KEY = 'cfo_data';
+        const DEFAULT_CATEGORIES = {
             expense: [
-                { id: 'housing', name: 'سكن', color: '#f43f5e' },
-                { id: 'food', name: 'طعام ومقاضي', color: '#f97316' },
-                { id: 'transport', name: 'مواصلات', color: '#eab308' },
-                { id: 'bills', name: 'فواتير واشتراكات', color: '#3b82f6' },
-                { id: 'shopping', name: 'تسوق شخصي', color: '#ec4899' },
-                { id: 'health', name: 'صحة وعناية', color: '#14b8a6' },
-                { id: 'entertainment', name: 'ترفيه', color: '#8b5cf6' },
-                { id: 'other_exp', name: 'مصروفات أخرى', color: '#64748b' }
+                { id: 'housing', name: 'سكن', emoji: '🏠', color: '#f43f5e' },
+                { id: 'food', name: 'طعام ومقاضي', emoji: '🍔', color: '#f97316' },
+                { id: 'transport', name: 'مواصلات', emoji: '🚗', color: '#eab308' },
+                { id: 'bills', name: 'فواتير واشتراكات', emoji: '🧾', color: '#3b82f6' },
+                { id: 'shopping', name: 'تسوق شخصي', emoji: '🛍️', color: '#ec4899' },
+                { id: 'health', name: 'صحة وعناية', emoji: '💊', color: '#14b8a6' },
+                { id: 'entertainment', name: 'ترفيه', emoji: '🎬', color: '#8b5cf6' },
+                { id: 'other_exp', name: 'مصروفات أخرى', emoji: '📦', color: '#64748b' }
             ],
             income: [
-                { id: 'salary', name: 'راتب أساسي', color: '#10b981' },
-                { id: 'business', name: 'عمل حر / تجارة', color: '#06b6d4' },
-                { id: 'investment', name: 'عوائد استثمار', color: '#6366f1' },
-                { id: 'other_inc', name: 'دخل آخر', color: '#64748b' }
+                { id: 'salary', name: 'راتب أساسي', emoji: '💰', color: '#10b981' },
+                { id: 'business', name: 'عمل حر / تجارة', emoji: '💼', color: '#06b6d4' },
+                { id: 'investment', name: 'عوائد استثمار', emoji: '📈', color: '#6366f1' },
+                { id: 'other_inc', name: 'دخل آخر', emoji: '🎁', color: '#64748b' }
             ]
         };
 
-        // ==================== عناصر الواجهة ====================
+        let meta = null;            // { passwordHash, salt, iv }
+        let encryptionKey = null;   // derived key (WordArray)
+        let currentData = { transactions: [], categories: deepClone(DEFAULT_CATEGORIES), budgets: {}, settings: { currency: 'ج.م', autoLockTimeout: 5, darkMode: false, notifications: false } };
+        let sessionTimeout = null;
+        let lastActivity = Date.now();
+
+        // ========== UTILS ==========
+        function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+        function escapeHTML(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+        function formatMoney(amount) { return parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+        // ========== CRYPTO ==========
+        function deriveKey(password, salt) {
+            return CryptoJS.PBKDF2(password, salt, { keySize: 256/32, iterations: 1000 });
+        }
+        function encryptData(data, key, iv) {
+            return CryptoJS.AES.encrypt(JSON.stringify(data), key, { iv: CryptoJS.enc.Hex.parse(iv) }).toString();
+        }
+        function decryptData(ciphertext, key, iv) {
+            const bytes = CryptoJS.AES.decrypt(ciphertext, key, { iv: CryptoJS.enc.Hex.parse(iv) });
+            return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        }
+        function generateSaltAndIV() {
+            return {
+                salt: CryptoJS.lib.WordArray.random(128/8).toString(),
+                iv: CryptoJS.lib.WordArray.random(128/8).toString()
+            };
+        }
+
+        // ========== STORAGE HELPERS ==========
+        function saveAllData() {
+            if (!encryptionKey || !meta) return;
+            const json = JSON.stringify(currentData);
+            const cipher = encryptData(currentData, encryptionKey, meta.iv);
+            localStorage.setItem(STORAGE_DATA_KEY, cipher);
+        }
+        function loadMeta() {
+            const raw = localStorage.getItem(STORAGE_META_KEY);
+            if (raw) meta = JSON.parse(raw);
+            else meta = null;
+        }
+        function saveMeta() {
+            localStorage.setItem(STORAGE_META_KEY, JSON.stringify(meta));
+        }
+
+        // ========== TOAST & NOTIFICATIONS ==========
+        function showToast(message, type = 'error', duration = 3000, callback = null) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bg = type === 'error' ? 'bg-rose-500' : type === 'success' ? 'bg-emerald-500' : 'bg-blue-500';
+            toast.className = `${bg} text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-2 transform transition-all duration-300 translate-y-[-100%] opacity-0 text-sm font-medium`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-[-100%]', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-10px]');
+                setTimeout(() => { toast.remove(); if (callback) callback(); }, 300);
+            }, duration);
+        }
+        function requestNotificationPermission() {
+            if (Notification.permission === 'default') Notification.requestPermission();
+        }
+        function sendNotification(title, body) {
+            if (Notification.permission === 'granted') new Notification(title, { body });
+        }
+
+        // ========== ACTIVITY TRACKING & AUTO-LOCK ==========
+        function resetAutoLockTimer() {
+            if (sessionTimeout) clearTimeout(sessionTimeout);
+            const timeoutMinutes = currentData.settings.autoLockTimeout || 5;
+            sessionTimeout = setTimeout(() => {
+                if (document.getElementById('screen-dashboard').classList.contains('hidden')) return;
+                lockSession();
+                showToast('تم قفل الجلسة تلقائياً بسبب عدم النشاط', 'error');
+            }, timeoutMinutes * 60 * 1000);
+        }
+        function lockSession() {
+            encryptionKey = null;
+            currentData = { transactions: [], categories: deepClone(DEFAULT_CATEGORIES), budgets: {}, settings: { currency: 'ج.م', autoLockTimeout: 5, darkMode: false, notifications: false } };
+            if (sessionTimeout) clearTimeout(sessionTimeout);
+            document.getElementById('screen-dashboard').classList.add('hidden');
+            document.getElementById('screen-login').classList.remove('hidden');
+        }
+        window.addEventListener('mousemove', () => { lastActivity = Date.now(); resetAutoLockTimer(); });
+        window.addEventListener('keydown', () => { lastActivity = Date.now(); resetAutoLockTimer(); });
+
+        // ========== UI HELPERS ==========
         const screens = {
             loading: document.getElementById('screen-loading'),
             setup: document.getElementById('screen-setup'),
             login: document.getElementById('screen-login'),
             dashboard: document.getElementById('screen-dashboard')
         };
-
-        function showScreen(screenName) {
+        function showScreen(name) {
             Object.values(screens).forEach(s => s.classList.add('hidden'));
-            screens[screenName].classList.remove('hidden');
+            screens[name].classList.remove('hidden');
+        }
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('nav-active'));
+            const view = document.getElementById(`view-${tabName}`);
+            const tab = document.getElementById(`tab-${tabName}`);
+            if (view) view.classList.remove('hidden');
+            if (tab) tab.classList.add('nav-active');
+            if (tabName === 'transactions') updateCategoryDropdown();
+            if (tabName === 'budget') renderBudgetTab();
+            if (tabName === 'categories') renderCategoriesTab();
+            if (tabName === 'settings') loadSettingsToUI();
+        };
+
+        // ========== CATEGORY HELPERS ==========
+        function getAllCategories() {
+            return [...(currentData.categories.expense || []), ...(currentData.categories.income || [])];
+        }
+        function getCategoryDetails(type, catId) {
+            const list = currentData.categories[type] || [];
+            return list.find(c => c.id === catId) || { id: catId, name: catId, emoji: '📌', color: '#94a3b8' };
         }
 
-        function showToast(message, type = 'error') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            const bgColor = type === 'error' ? 'bg-rose-500' : 'bg-emerald-500';
-            toast.className = `${bgColor} text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-2 transform transition-all duration-300 translate-y-[-100%] opacity-0 text-sm font-medium`;
-            toast.innerHTML = `<span>${message}</span>`;
-            container.appendChild(toast);
-            setTimeout(() => toast.classList.remove('translate-y-[-100%]', 'opacity-0'), 10);
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-[-10px]');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+        // ========== DATA LOADING ==========
+        function unlockAndLoad(password) {
+            loadMeta();
+            if (!meta) { showToast('لا توجد بيانات مهيأة', 'error'); return false; }
+            try {
+                const key = deriveKey(password, meta.salt);
+                const cipher = localStorage.getItem(STORAGE_DATA_KEY);
+                if (!cipher) { currentData = initializeDefaultData(); encryptionKey = key; return true; }
+                const decrypted = decryptData(cipher, key, meta.iv);
+                // دمج مع الفئات الافتراضية للحفاظ على أي فئات جديدة
+                currentData = {
+                    transactions: decrypted.transactions || [],
+                    categories: decrypted.categories || deepClone(DEFAULT_CATEGORIES),
+                    budgets: decrypted.budgets || {},
+                    settings: decrypted.settings || { currency: 'ج.م', autoLockTimeout: 5, darkMode: false, notifications: false }
+                };
+                encryptionKey = key;
+                applySettings();
+                generateRecurringTransactions();
+                return true;
+            } catch (e) {
+                showToast('الرمز السري غير صحيح أو البيانات تالفة', 'error');
+                return false;
+            }
         }
-
-        // ==================== التهيئة الأولية ====================
-        function initializeApp() {
-            // محاكاة تحميل سريع ثم التحقق من وجود كلمة مرور
-            setTimeout(() => {
-                if (currentPassword) {
-                    // يوجد كلمة مرور -> شاشة تسجيل الدخول
-                    showScreen('login');
-                } else {
-                    // لا يوجد -> إعداد كلمة مرور جديدة
-                    showScreen('setup');
+        function initializeDefaultData() {
+            return { transactions: [], categories: deepClone(DEFAULT_CATEGORIES), budgets: {}, settings: { currency: 'ج.م', autoLockTimeout: 5, darkMode: false, notifications: false } };
+        }
+        function generateRecurringTransactions() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const currentMonthKey = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+            let modified = false;
+            currentData.transactions.forEach(tx => {
+                if (tx.recurring && (!tx.lastRecurrence || tx.lastRecurrence !== currentMonthKey)) {
+                    // إنشاء معاملة جديدة للشهر الحالي
+                    const newTx = { ...tx, id: Date.now().toString() + Math.random(), date: new Date(currentYear, currentMonth, 1).toISOString().split('T')[0], recurring: true, lastRecurrence: currentMonthKey, parentId: tx.id };
+                    currentData.transactions.push(newTx);
+                    tx.lastRecurrence = currentMonthKey; // تحديث الأصل
+                    modified = true;
                 }
-            }, 500); // إعطاء تأثير التحميل البسيط
+            });
+            if (modified) saveAllData();
         }
 
-        // ==================== إعداد كلمة المرور وتسجيل الدخول ====================
-        document.getElementById('setup-form').addEventListener('submit', function(e) {
+        // ========== SETUP / LOGIN / LOGOUT ==========
+        document.getElementById('setup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const pass = document.getElementById('setup-password').value.trim();
             const confirm = document.getElementById('setup-confirm').value.trim();
-            
-            if (pass !== confirm) {
-                showToast('الرمز غير متطابق', 'error');
-                return;
-            }
-            if (pass.length < 4) {
-                showToast('الرمز يجب أن يكون 4 خانات على الأقل', 'error');
-                return;
-            }
-            
-            // حفظ كلمة المرور محلياً
-            setStoredPassword(pass);
-            currentPassword = pass;
-            sessionUnlocked = true;
-            
-            // تنظيف الحقول
+            if (pass !== confirm) return showToast('الرمز غير متطابق', 'error');
+            if (pass.length < 4) return showToast('الرمز يجب أن يكون 4 خانات على الأقل', 'error');
+            const { salt, iv } = generateSaltAndIV();
+            const key = deriveKey(pass, salt);
+            meta = { passwordHash: CryptoJS.SHA256(key).toString(), salt, iv };
+            saveMeta();
+            encryptionKey = key;
+            currentData = initializeDefaultData();
+            saveAllData();
             document.getElementById('setup-password').value = '';
             document.getElementById('setup-confirm').value = '';
-            
             launchDashboard();
         });
 
-        document.getElementById('login-form').addEventListener('submit', function(e) {
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const pass = document.getElementById('login-password').value.trim();
-            
-            if (pass === currentPassword) {
-                sessionUnlocked = true;
-                document.getElementById('login-password').value = '';
-                launchDashboard();
-            } else {
-                showToast('الرمز السري غير صحيح', 'error');
+            loadMeta();
+            if (!meta) { showToast('لا يوجد إعداد مسبق', 'error'); return; }
+            const key = deriveKey(pass, meta.salt);
+            if (CryptoJS.SHA256(key).toString() !== meta.passwordHash) {
+                return showToast('الرمز السري غير صحيح', 'error');
             }
+            if (!unlockAndLoad(pass)) return;
+            document.getElementById('login-password').value = '';
+            launchDashboard();
         });
 
-        document.getElementById('btn-logout').addEventListener('click', function() {
-            sessionUnlocked = false;
-            showScreen('login');
-        });
+        document.getElementById('btn-logout').addEventListener('click', () => lockSession());
 
-        // ==================== التبديل بين التبويبات ====================
-        window.switchTab = function(tabName) {
-            document.getElementById('view-overview').classList.add('hidden');
-            document.getElementById('view-transactions').classList.add('hidden');
-            document.getElementById('tab-overview').classList.remove('nav-active');
-            document.getElementById('tab-transactions').classList.remove('nav-active');
-            
-            document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabName}`).classList.add('nav-active');
-        };
-
-        // ==================== إدارة التصنيفات في النموذج ====================
-        const typeRadios = document.querySelectorAll('input[name="tx-type"]');
-        const categorySelect = document.getElementById('tx-category');
-
-        function updateCategoryDropdown() {
-            const selectedType = document.querySelector('input[name="tx-type"]:checked').value;
-            categorySelect.innerHTML = '';
-            CATEGORIES[selectedType].forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat.id;
-                opt.textContent = cat.name;
-                categorySelect.appendChild(opt);
-            });
-        }
-        typeRadios.forEach(radio => radio.addEventListener('change', updateCategoryDropdown));
-        updateCategoryDropdown(); // تعبئة أولية
-
-        // ==================== تشغيل لوحة التحكم ====================
+        // ========== LAUNCH DASHBOARD ==========
         function launchDashboard() {
             showScreen('dashboard');
-            // تحديث التاريخ المعروض
-            document.getElementById('current-month-label').textContent = 
-                `بيانات شهر ${new Date().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })}`;
-            // تحديث تاريخ النموذج لليوم
+            document.getElementById('current-month-label').textContent = `بيانات شهر ${new Date().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })}`;
             document.getElementById('tx-date').valueAsDate = new Date();
-            
-            // ضبط خط الرسوم البيانية
-            if (Chart.defaults.font) {
-                Chart.defaults.font.family = "'Tajawal', sans-serif";
-            }
-            
-            // تحميل البيانات وعرضها
-            refreshDataAndUI();
+            document.getElementById('currency-symbol').textContent = currentData.settings.currency;
+            if (Chart.defaults.font) Chart.defaults.font.family = "'Tajawal', sans-serif";
+            applySettings();
+            refreshAllUI();
+            resetAutoLockTimer();
+            if (currentData.settings.notifications) requestNotificationPermission();
         }
 
-        // ==================== دوال إدارة المعاملات ====================
-        function addTransactionLocally(txData) {
-            const newTx = {
-                id: Date.now().toString(), // معرف فريد بسيط
-                type: txData.type,
-                category: txData.category,
-                amount: parseFloat(txData.amount),
-                description: txData.description,
-                date: txData.date,
-                createdAt: new Date().toISOString()
-            };
-            transactions.push(newTx);
-            saveTransactions(transactions);
-            refreshDataAndUI();
+        function applySettings() {
+            if (currentData.settings.darkMode) document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+            document.getElementById('currency-symbol').textContent = currentData.settings.currency;
+            document.getElementById('auto-lock-timeout').value = currentData.settings.autoLockTimeout;
         }
 
-        function deleteTransactionLocally(id) {
-            transactions = transactions.filter(tx => tx.id !== id);
-            saveTransactions(transactions);
-            refreshDataAndUI();
-        }
-
-        // ==================== عرض البيانات في الواجهة ====================
-        function refreshDataAndUI() {
-            // ترتيب المعاملات تنازلياً حسب التاريخ
-            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // ========== REFRESH ALL ==========
+        function refreshAllUI() {
+            renderOverviewKPIs();
             renderTransactionsList();
-            calculateAndRenderKPIs();
+            renderBudgetTab();
+            renderCategoriesTab();
         }
 
-        // عرض قائمة المعاملات
-        function renderTransactionsList() {
-            const listContainer = document.getElementById('transactions-list');
-            const emptyState = document.getElementById('empty-state');
-            document.getElementById('tx-count').textContent = `${transactions.length} معاملة`;
-            
-            listContainer.innerHTML = '';
-            if (transactions.length === 0) {
-                emptyState.classList.remove('hidden');
-                emptyState.classList.add('flex');
-                return;
-            }
-            emptyState.classList.add('hidden');
-            emptyState.classList.remove('flex');
+        // ========== OVERVIEW KPIs & CHARTS ==========
+        function renderOverviewKPIs() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-            transactions.forEach(tx => {
-                const isInc = tx.type === 'income';
-                const catInfo = getCategoryDetails(tx.type, tx.category);
-                
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-3.5 rounded-xl bg-white border border-slate-100 hover:border-slate-200 transition-colors group';
-                
-                item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 opacity-90" style="background-color: ${catInfo.color}15; color: ${catInfo.color}">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                ${isInc ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>' : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>'}
-                            </svg>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-slate-700 text-sm">${escapeHTML(tx.description)}</h4>
-                            <div class="flex gap-2 text-xs mt-0.5">
-                                <span class="text-slate-400">${new Date(tx.date).toLocaleDateString('ar-EG')}</span>
-                                <span class="text-slate-300">•</span>
-                                <span style="color: ${catInfo.color}">${catInfo.name}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold text-sm ${isInc ? 'text-emerald-600' : 'text-slate-700'}" dir="ltr">
-                            ${isInc ? '+' : '-'} ${formatMoney(tx.amount)}
-                        </span>
-                        <button class="delete-btn text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-1" data-id="${tx.id}">
-                            <svg class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                    </div>
-                `;
-                listContainer.appendChild(item);
+            let totalNetWorth = 0, curIncome = 0, curExpense = 0, prevIncome = 0, prevExpense = 0;
+            const expenseBreakdown = {};
+            const cashflowMap = {};
+            const networthOverTime = [];
+
+            for (let i = 5; i >= 0; i--) {
+                let d = new Date(currentYear, currentMonth - i, 1);
+                let key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                cashflowMap[key] = { inc: 0, exp: 0, label: d.toLocaleDateString('ar-EG', {month:'short'}) };
+            }
+
+            currentData.transactions.forEach(tx => {
+                const amt = parseFloat(tx.amount);
+                const txDate = new Date(tx.date);
+                const monthKey = `${txDate.getFullYear()}-${String(txDate.getMonth()+1).padStart(2,'0')}`;
+                if (tx.type === 'income') totalNetWorth += amt;
+                else totalNetWorth -= amt;
+                if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+                    if (tx.type === 'income') curIncome += amt;
+                    else { curExpense += amt; expenseBreakdown[tx.category] = (expenseBreakdown[tx.category] || 0) + amt; }
+                }
+                if (txDate.getMonth() === prevMonth && txDate.getFullYear() === prevYear) {
+                    if (tx.type === 'income') prevIncome += amt;
+                    else prevExpense += amt;
+                }
+                if (cashflowMap[monthKey]) {
+                    if (tx.type === 'income') cashflowMap[monthKey].inc += amt;
+                    else cashflowMap[monthKey].exp += amt;
+                }
             });
 
-            // أحداث الحذف
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    const id = this.getAttribute('data-id');
-                    if (confirm('هل أنت متأكد من حذف هذه المعاملة؟')) {
-                        deleteTransactionLocally(id);
-                        showToast('تم الحذف بنجاح', 'success');
+            // Net worth over time (cumulative)
+            let cumNet = 0;
+            const sortedMonths = Object.keys(cashflowMap).sort();
+            sortedMonths.forEach(key => {
+                cumNet += (cashflowMap[key].inc - cashflowMap[key].exp);
+                networthOverTime.push({ label: cashflowMap[key].label, value: cumNet });
+            });
+
+            const savingsRate = curIncome > 0 ? ((curIncome - curExpense) / curIncome) * 100 : 0;
+            const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
+            const dailyBurn = curExpense / daysInMonth;
+            const annualSavingProjection = (curIncome - curExpense) * 12;
+
+            let kpiHTML = `
+                <div class="glass-panel p-5 rounded-2xl stat-card border-t-4 border-slate-800"><p class="text-slate-500 dark:text-slate-400 text-sm">صافي الثروة</p><h3 class="text-2xl font-bold" dir="ltr">${formatMoney(totalNetWorth)}</h3></div>
+                <div class="glass-panel p-5 rounded-2xl stat-card border-t-4 border-emerald-500"><p class="text-slate-500 dark:text-slate-400 text-sm">مداخيل الشهر</p><h3 class="text-xl font-bold text-emerald-600" dir="ltr">${formatMoney(curIncome)}</h3><p class="text-xs text-slate-400">${prevIncome ? 'مقارنة بالشهر السابق: ' + (curIncome > prevIncome ? '↑' : '↓') + Math.abs(curIncome-prevIncome).toFixed(0) : ''}</p></div>
+                <div class="glass-panel p-5 rounded-2xl stat-card border-t-4 border-rose-500"><p class="text-slate-500 dark:text-slate-400 text-sm">مصروفات الشهر</p><h3 class="text-xl font-bold text-rose-600" dir="ltr">${formatMoney(curExpense)}</h3><p class="text-xs text-slate-400">${prevExpense ? 'مقارنة: ' + (curExpense > prevExpense ? '↑' : '↓') + Math.abs(curExpense-prevExpense).toFixed(0) : ''}</p></div>
+                <div class="glass-panel p-5 rounded-2xl stat-card border-t-4 border-blue-500"><p class="text-slate-500 dark:text-slate-400 text-sm">معدل الادخار</p><h3 class="text-xl font-bold ${savingsRate>=20?'text-blue-600':(savingsRate>0?'text-amber-500':'text-rose-500')}">${savingsRate.toFixed(1)}%</h3><p class="text-xs text-slate-400">حرق يومي: ${formatMoney(dailyBurn)} | توقعات سنوية: ${formatMoney(annualSavingProjection)}</p></div>
+            `;
+            document.getElementById('kpi-container').innerHTML = kpiHTML;
+
+            document.getElementById('cfo-insight-text').innerHTML = generateInsight(expenseBreakdown, curIncome, curExpense, savingsRate);
+            renderExpenseChart(expenseBreakdown);
+            renderCashflowChart(cashflowMap);
+            renderNetworthChart(networthOverTime);
+        }
+
+        function generateInsight(breakdown, income, expense, rate) {
+            if (income===0 && expense===0) return 'أهلاً بك في نظام المدير المالي. قم بإضافة بياناتك للبدء في التحليل.';
+            let msg = '';
+            if (expense > income) msg = `تحذير: مصروفاتك تتجاوز دخلك بمقدار ${formatMoney(expense-income)}. `;
+            else if (rate >= 20) msg = `أداء ممتاز! أنت تدخر ${rate.toFixed(0)}% من دخلك. `;
+            else msg = `معدل ادخارك ${rate.toFixed(0)}%. حاول تقليل النفقات. `;
+            let maxCat = null, maxAmt = 0;
+            Object.entries(breakdown).forEach(([cat, amt]) => { if(amt>maxAmt){ maxAmt=amt; maxCat=cat; } });
+            if (maxCat) {
+                const catInfo = getCategoryDetails('expense', maxCat);
+                msg += `<br>أعلى إنفاق: <strong>${catInfo.emoji} ${catInfo.name}</strong> بنسبة ${((maxAmt/expense)*100).toFixed(0)}%.`;
+            }
+            return msg;
+        }
+
+        let expenseChart, cashflowChart, networthChart;
+        function renderExpenseChart(breakdown) {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            if (expenseChart) expenseChart.destroy();
+            if (Object.keys(breakdown).length === 0) { document.getElementById('expenseChartEmpty').classList.remove('hidden'); return; }
+            document.getElementById('expenseChartEmpty').classList.add('hidden');
+            const labels = [], data = [], colors = [];
+            Object.entries(breakdown).forEach(([catId, amt]) => {
+                const info = getCategoryDetails('expense', catId);
+                labels.push(info.emoji + ' ' + info.name);
+                data.push(amt);
+                colors.push(info.color);
+            });
+            expenseChart = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: colors }] }, options: { cutout:'70%', plugins: { legend: { position:'right', labels: {boxWidth:10} } } } });
+        }
+        function renderCashflowChart(cashflowMap) {
+            const ctx = document.getElementById('cashflowChart').getContext('2d');
+            if (cashflowChart) cashflowChart.destroy();
+            const keys = Object.keys(cashflowMap).sort();
+            cashflowChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: keys.map(k => cashflowMap[k].label),
+                    datasets: [
+                        { label: 'مداخيل', data: keys.map(k => cashflowMap[k].inc), backgroundColor: '#10b981' },
+                        { label: 'مصروفات', data: keys.map(k => cashflowMap[k].exp), backgroundColor: '#f43f5e' }
+                    ]
+                },
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+        }
+        function renderNetworthChart(networthData) {
+            const ctx = document.getElementById('networthChart').getContext('2d');
+            if (networthChart) networthChart.destroy();
+            networthChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: networthData.map(d => d.label),
+                    datasets: [{ label: 'صافي الثروة', data: networthData.map(d => d.value), borderColor: '#6366f1', tension: 0.2, fill: false }]
+                },
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        // ========== TRANSACTIONS ==========
+        function updateCategoryDropdown() {
+            const type = document.querySelector('input[name="tx-type"]:checked').value;
+            const select = document.getElementById('tx-category');
+            select.innerHTML = '';
+            (currentData.categories[type] || []).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.emoji + ' ' + cat.name;
+                select.appendChild(opt);
+            });
+        }
+        document.querySelectorAll('input[name="tx-type"]').forEach(r => r.addEventListener('change', updateCategoryDropdown));
+
+        document.getElementById('transaction-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const editId = document.getElementById('tx-edit-id').value;
+            const type = document.querySelector('input[name="tx-type"]:checked').value;
+            const category = document.getElementById('tx-category').value;
+            const amount = parseFloat(document.getElementById('tx-amount').value);
+            const desc = document.getElementById('tx-desc').value.trim();
+            const date = document.getElementById('tx-date').value;
+            const recurring = document.getElementById('tx-recurring').checked;
+            if (!amount || amount <= 0) return showToast('مبلغ غير صحيح');
+            if (!desc) return showToast('يرجى كتابة وصف');
+            if (editId) {
+                const idx = currentData.transactions.findIndex(t => t.id === editId);
+                if (idx !== -1) {
+                    currentData.transactions[idx] = { ...currentData.transactions[idx], type, category, amount, description: desc, date, recurring };
+                }
+                document.getElementById('tx-edit-id').value = '';
+                document.getElementById('btn-save-tx').textContent = 'تأكيد وحفظ';
+            } else {
+                const newTx = { id: Date.now().toString() + Math.random(), type, category, amount, description: desc, date, recurring, createdAt: new Date().toISOString() };
+                currentData.transactions.push(newTx);
+            }
+            saveAllData();
+            refreshAllUI();
+            document.getElementById('tx-amount').value = '';
+            document.getElementById('tx-desc').value = '';
+            document.getElementById('tx-recurring').checked = false;
+            showToast('تم الحفظ بنجاح', 'success');
+        });
+
+        function renderTransactionsList() {
+            const container = document.getElementById('transactions-list');
+            const empty = document.getElementById('empty-state');
+            const filterMonth = document.getElementById('filter-month').value; // YYYY-MM
+            let filtered = currentData.transactions;
+            if (filterMonth) {
+                const [year, month] = filterMonth.split('-').map(Number);
+                filtered = filtered.filter(tx => {
+                    const d = new Date(tx.date);
+                    return d.getFullYear() === year && d.getMonth() === month - 1;
+                });
+            }
+            filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+            document.getElementById('tx-count').textContent = `${filtered.length} معاملة`;
+            container.innerHTML = '';
+            if (filtered.length === 0) { empty.classList.remove('hidden'); empty.classList.add('flex'); return; }
+            empty.classList.add('hidden');
+            filtered.forEach(tx => {
+                const isInc = tx.type === 'income';
+                const catInfo = getCategoryDetails(tx.type, tx.category);
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 group';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">${catInfo.emoji || '📌'}</span>
+                        <div><h4 class="font-bold text-sm">${escapeHTML(tx.description)}</h4><div class="text-xs text-slate-500">${new Date(tx.date).toLocaleDateString('ar-EG')} • ${catInfo.name}</div></div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold ${isInc?'text-emerald-600':'text-slate-700 dark:text-slate-300'}" dir="ltr">${isInc?'+':'-'}${formatMoney(tx.amount)}</span>
+                        <button class="edit-tx text-slate-400 hover:text-blue-500 opacity-0 group-hover:opacity-100" data-id="${tx.id}">✏️</button>
+                        <button class="delete-tx text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100" data-id="${tx.id}">🗑️</button>
+                    </div>`;
+                container.appendChild(div);
+            });
+            document.querySelectorAll('.delete-tx').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const index = currentData.transactions.findIndex(t => t.id === id);
+                    if (index !== -1) {
+                        const deleted = currentData.transactions.splice(index, 1)[0];
+                        saveAllData();
+                        refreshAllUI();
+                        showToast('تم الحذف. <button class="underline" id="undo-delete">تراجع</button>', 'success', 5000);
+                        document.getElementById('undo-delete')?.addEventListener('click', () => {
+                            currentData.transactions.push(deleted);
+                            saveAllData();
+                            refreshAllUI();
+                        });
+                    }
+                });
+            });
+            document.querySelectorAll('.edit-tx').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const tx = currentData.transactions.find(t => t.id === id);
+                    if (tx) {
+                        document.querySelector(`input[name="tx-type"][value="${tx.type}"]`).checked = true;
+                        updateCategoryDropdown();
+                        document.getElementById('tx-category').value = tx.category;
+                        document.getElementById('tx-amount').value = tx.amount;
+                        document.getElementById('tx-desc').value = tx.description;
+                        document.getElementById('tx-date').value = tx.date;
+                        document.getElementById('tx-recurring').checked = tx.recurring || false;
+                        document.getElementById('tx-edit-id').value = tx.id;
+                        document.getElementById('btn-save-tx').textContent = 'تحديث المعاملة';
+                        window.switchTab('transactions');
                     }
                 });
             });
         }
+        document.getElementById('filter-month').addEventListener('change', renderTransactionsList);
 
-        function escapeHTML(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        }
-
-        function getCategoryDetails(type, catId) {
-            const list = CATEGORIES[type] || [];
-            return list.find(c => c.id === catId) || { name: catId, color: '#94a3b8' };
-        }
-
-        function formatMoney(amount) {
-            return parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        // ==================== الحسابات والرسوم البيانية ====================
-        function calculateAndRenderKPIs() {
-            let totalNetWorth = 0;
-            let currentMonthIncome = 0;
-            let currentMonthExpense = 0;
-            
+        // ========== BUDGET TAB ==========
+        function renderBudgetTab() {
+            const container = document.getElementById('budget-list');
+            const select = document.getElementById('budget-category-select');
+            select.innerHTML = '';
+            getAllCategories().forEach(cat => { const opt = document.createElement('option'); opt.value = cat.id; opt.textContent = cat.emoji + ' ' + cat.name; select.appendChild(opt); });
             const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-
-            const expenseBreakdown = {};
-            const cashflowTrend = {};
-
-            // تهيئة آخر 6 أشهر
-            for(let i = 5; i >= 0; i--) {
-                let d = new Date(currentYear, currentMonth - i, 1);
-                let key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-                cashflowTrend[key] = { inc: 0, exp: 0, label: d.toLocaleDateString('ar-EG', {month:'short'}) };
-            }
-
-            transactions.forEach(tx => {
-                const amt = parseFloat(tx.amount);
-                const txDate = new Date(tx.date);
-                const isCurrentMonth = txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
-                const monthKey = `${txDate.getFullYear()}-${String(txDate.getMonth()+1).padStart(2,'0')}`;
-
-                if (tx.type === 'income') totalNetWorth += amt;
-                else totalNetWorth -= amt;
-
-                if (isCurrentMonth) {
-                    if (tx.type === 'income') currentMonthIncome += amt;
-                    else {
-                        currentMonthExpense += amt;
-                        expenseBreakdown[tx.category] = (expenseBreakdown[tx.category] || 0) + amt;
-                    }
-                }
-
-                if (cashflowTrend[monthKey]) {
-                    if (tx.type === 'income') cashflowTrend[monthKey].inc += amt;
-                    else cashflowTrend[monthKey].exp += amt;
-                }
+            const curMonth = now.getMonth(); const curYear = now.getFullYear();
+            let html = '';
+            Object.entries(currentData.budgets).forEach(([catId, limit]) => {
+                const spent = currentData.transactions.filter(tx => tx.type==='expense' && tx.category===catId && new Date(tx.date).getMonth()===curMonth && new Date(tx.date).getFullYear()===curYear).reduce((sum,tx)=>sum+parseFloat(tx.amount),0);
+                const cat = getCategoryDetails('expense', catId);
+                const pct = limit>0 ? (spent/limit)*100 : 0;
+                const color = pct>=100 ? 'bg-red-500' : pct>=80 ? 'bg-yellow-500' : 'bg-green-500';
+                html += `<div class="glass-panel p-4"><div class="flex justify-between"><span>${cat.emoji} ${cat.name}</span><span>${formatMoney(spent)} / ${formatMoney(limit)}</span></div><div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 mt-1"><div class="${color} h-2 rounded-full" style="width:${Math.min(pct,100)}%"></div></div></div>`;
             });
-
-            // تحديث واجهة KPI
-            document.getElementById('kpi-networth').innerHTML = `${formatMoney(totalNetWorth)} <span class="text-sm font-normal text-slate-400">ج.م</span>`;
-            document.getElementById('kpi-income').textContent = formatMoney(currentMonthIncome);
-            document.getElementById('kpi-expense').textContent = formatMoney(currentMonthExpense);
-            
-            let savingsRate = 0;
-            if (currentMonthIncome > 0) {
-                savingsRate = ((currentMonthIncome - currentMonthExpense) / currentMonthIncome) * 100;
-            }
-            const savingsEl = document.getElementById('kpi-savings');
-            savingsEl.innerHTML = `${Math.max(0, savingsRate).toFixed(1)}%`;
-            savingsEl.className = `text-xl font-bold ${savingsRate >= 20 ? 'text-blue-600' : (savingsRate > 0 ? 'text-amber-500' : 'text-rose-500')}`;
-
-            generateInsight(expenseBreakdown, currentMonthIncome, currentMonthExpense, savingsRate);
-            renderExpenseChart(expenseBreakdown);
-            renderCashflowChart(cashflowTrend);
+            container.innerHTML = html || '<p class="text-slate-500">لا توجد ميزانيات محددة</p>';
         }
-
-        function generateInsight(breakdown, income, expense, savingsRate) {
-            const insightEl = document.getElementById('cfo-insight-text');
-            if (income === 0 && expense === 0) {
-                insightEl.textContent = 'أهلاً بك في نظام المدير المالي. قم بإضافة بياناتك للبدء في التحليل.';
-                return;
-            }
-
-            let maxCategory = null;
-            let maxAmount = 0;
-            for (const [cat, amt] of Object.entries(breakdown)) {
-                if (amt > maxAmount) { maxAmount = amt; maxCategory = cat; }
-            }
-
-            let message = '';
-            if (expense > income) {
-                message = `تحذير مالي: مصروفاتك هذا الشهر تتجاوز دخلك بمقدار ${formatMoney(expense - income)} ج.م. `;
-            } else if (savingsRate >= 20) {
-                message = `أداء ممتاز! أنت تدخر ${savingsRate.toFixed(0)}% من دخلك. `;
-            } else {
-                message = `معدل ادخارك الحالي هو ${Math.max(0, savingsRate).toFixed(0)}%. حاول تقليل النفقات للوصول لنسبة 20% الموصى بها. `;
-            }
-
-            if (maxCategory) {
-                const catName = getCategoryDetails('expense', maxCategory).name;
-                const percent = ((maxAmount / expense) * 100).toFixed(0);
-                message += `<br>أعلى بند إنفاق لديك هو <strong>"${catName}"</strong> ويمثل ${percent}% من إجمالي نفقات الشهر.`;
-            }
-
-            insightEl.innerHTML = message;
-        }
-
-        // ==================== الرسوم البيانية ====================
-        let expenseChartInstance = null;
-        let cashflowChartInstance = null;
-
-        function renderExpenseChart(breakdownData) {
-            const ctx = document.getElementById('expenseChart').getContext('2d');
-            const emptyLabel = document.getElementById('expenseChartEmpty');
-            
-            if (expenseChartInstance) expenseChartInstance.destroy();
-
-            const keys = Object.keys(breakdownData);
-            if (keys.length === 0) {
-                emptyLabel.classList.remove('hidden');
-                return;
-            }
-            emptyLabel.classList.add('hidden');
-
-            const labels = [];
-            const data = [];
-            const bgColors = [];
-
-            keys.forEach(k => {
-                const info = getCategoryDetails('expense', k);
-                labels.push(info.name);
-                data.push(breakdownData[k]);
-                bgColors.push(info.color);
-            });
-
-            expenseChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: bgColors, borderWidth: 0 }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } }
-                    }
-                }
-            });
-        }
-
-        function renderCashflowChart(trendData) {
-            const ctx = document.getElementById('cashflowChart').getContext('2d');
-            if (cashflowChartInstance) cashflowChartInstance.destroy();
-
-            const labels = [];
-            const incData = [];
-            const expData = [];
-
-            Object.keys(trendData).sort().forEach(key => {
-                labels.push(trendData[key].label);
-                incData.push(trendData[key].inc);
-                expData.push(trendData[key].exp);
-            });
-
-            cashflowChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: 'المداخيل', data: incData, backgroundColor: '#10b981', borderRadius: 4 },
-                        { label: 'المصروفات', data: expData, backgroundColor: '#f43f5e', borderRadius: 4 }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: {size: 10} } },
-                        x: { grid: { display: false }, ticks: { font: {size: 11} } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 12 } } } }
-                }
-            });
-        }
-
-        // ==================== معالجة نموذج المعاملة ====================
-        document.getElementById('transaction-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const type = document.querySelector('input[name="tx-type"]:checked').value;
-            const category = document.getElementById('tx-category').value;
-            const amount = document.getElementById('tx-amount').value;
-            const desc = document.getElementById('tx-desc').value.trim();
-            const date = document.getElementById('tx-date').value;
-            
-            if (!amount || parseFloat(amount) <= 0) {
-                showToast('يرجى إدخال مبلغ صحيح', 'error');
-                return;
-            }
-            if (!desc) {
-                showToast('يرجى كتابة وصف للمعاملة', 'error');
-                return;
-            }
-            
-            const btn = document.getElementById('btn-save-tx');
-            const originalText = btn.textContent;
-            btn.textContent = 'جاري الحفظ...';
-            btn.disabled = true;
-            
-            // محاكاة تأخير بسيط (اختياري)
-            setTimeout(() => {
-                addTransactionLocally({ type, category, amount, description: desc, date });
-                // تنظيف الحقول
-                document.getElementById('tx-amount').value = '';
-                document.getElementById('tx-desc').value = '';
-                document.getElementById('tx-amount').focus();
-                showToast('تم تسجيل المعاملة بنجاح', 'success');
-                
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }, 100);
+        document.getElementById('save-budget-btn').addEventListener('click', () => {
+            const catId = document.getElementById('budget-category-select').value;
+            const amount = parseFloat(document.getElementById('budget-amount-input').value);
+            if (!amount || amount<=0) return showToast('حد غير صحيح');
+            currentData.budgets[catId] = amount;
+            saveAllData();
+            renderBudgetTab();
+            showToast('تم حفظ الميزانية', 'success');
         });
 
-        // ==================== بدء التطبيق ====================
+        // ========== CATEGORIES TAB ==========
+        function renderCategoriesTab() {
+            const container = document.getElementById('categories-container');
+            let html = '';
+            ['expense','income'].forEach(type => {
+                (currentData.categories[type]||[]).forEach(cat => {
+                    html += `<div class="glass-panel p-3 flex items-center justify-between"><div><span class="text-xl">${cat.emoji}</span> ${cat.name} <span class="text-xs text-slate-400">(${type==='income'?'دخل':'مصروف'})</span></div><div class="flex gap-2"><button class="edit-cat text-blue-500" data-id="${cat.id}" data-type="${type}">✏️</button><button class="delete-cat text-red-500" data-id="${cat.id}" data-type="${type}">🗑️</button></div></div>`;
+                });
+            });
+            container.innerHTML = html;
+            // Delete handler
+            document.querySelectorAll('.delete-cat').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id; const type = this.dataset.type;
+                    currentData.categories[type] = currentData.categories[type].filter(c => c.id !== id);
+                    saveAllData(); refreshAllUI(); showToast('تم الحذف', 'success');
+                });
+            });
+            // Edit handler (simplified: prompt)
+            document.querySelectorAll('.edit-cat').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id; const type = this.dataset.type;
+                    const cat = currentData.categories[type].find(c => c.id === id);
+                    if (cat) {
+                        const newName = prompt('اسم الفئة', cat.name);
+                        if (newName) { cat.name = newName; saveAllData(); refreshAllUI(); }
+                    }
+                });
+            });
+        }
+        document.getElementById('add-category-btn').addEventListener('click', () => {
+            const name = document.getElementById('new-cat-name').value.trim();
+            const emoji = document.getElementById('new-cat-emoji').value.trim() || '📌';
+            const color = document.getElementById('new-cat-color').value;
+            const type = document.getElementById('new-cat-type').value;
+            if (!name) return showToast('أدخل اسم الفئة');
+            const id = 'custom_' + Date.now();
+            currentData.categories[type].push({ id, name, emoji, color });
+            saveAllData(); refreshAllUI(); showToast('تمت الإضافة', 'success');
+        });
+
+        // ========== SETTINGS ==========
+        function loadSettingsToUI() {
+            document.getElementById('currency-input').value = currentData.settings.currency;
+            document.getElementById('auto-lock-timeout').value = currentData.settings.autoLockTimeout;
+            document.getElementById('notifications-checkbox').checked = currentData.settings.notifications;
+        }
+        document.getElementById('save-currency-btn').addEventListener('click', () => {
+            currentData.settings.currency = document.getElementById('currency-input').value.trim() || 'ج.م';
+            saveAllData(); applySettings(); showToast('تم حفظ العملة', 'success');
+        });
+        document.getElementById('save-timeout-btn').addEventListener('click', () => {
+            currentData.settings.autoLockTimeout = parseInt(document.getElementById('auto-lock-timeout').value) || 5;
+            saveAllData(); resetAutoLockTimer(); showToast('تم الحفظ', 'success');
+        });
+        document.getElementById('change-password-btn').addEventListener('click', () => {
+            const old = document.getElementById('old-password').value;
+            const newPass = document.getElementById('new-password').value;
+            if (!old || !newPass) return showToast('أكمل الحقول');
+            const key = deriveKey(old, meta.salt);
+            if (CryptoJS.SHA256(key).toString() !== meta.passwordHash) return showToast('كلمة المرور الحالية خطأ');
+            const { salt, iv } = generateSaltAndIV();
+            const newKey = deriveKey(newPass, salt);
+            meta = { passwordHash: CryptoJS.SHA256(newKey).toString(), salt, iv };
+            encryptionKey = newKey;
+            saveMeta(); saveAllData();
+            showToast('تم تغيير كلمة المرور', 'success');
+        });
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(currentData, null, 2)], {type:'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cfo_backup.json'; a.click();
+        });
+        document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
+        document.getElementById('import-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    const imported = JSON.parse(ev.target.result);
+                    if (imported.transactions && imported.categories && imported.budgets && imported.settings) {
+                        currentData = imported;
+                        saveAllData(); refreshAllUI(); showToast('تم الاستيراد بنجاح', 'success');
+                    } else showToast('ملف غير صالح', 'error');
+                } catch (ex) { showToast('فشل قراءة الملف'); }
+            };
+            reader.readAsText(file);
+        });
+        document.getElementById('delete-all-btn').addEventListener('click', () => {
+            if (confirm('هل أنت متأكد من حذف جميع البيانات؟ لا يمكن التراجع.')) {
+                localStorage.removeItem(STORAGE_META_KEY);
+                localStorage.removeItem(STORAGE_DATA_KEY);
+                meta = null; encryptionKey = null;
+                currentData = initializeDefaultData();
+                showScreen('setup');
+            }
+        });
+        document.getElementById('notifications-checkbox').addEventListener('change', function() {
+            currentData.settings.notifications = this.checked;
+            saveAllData();
+            if (this.checked) requestNotificationPermission();
+        });
+        document.getElementById('btn-toggle-dark').addEventListener('click', () => {
+            currentData.settings.darkMode = !currentData.settings.darkMode;
+            saveAllData(); applySettings();
+        });
+
+        // ========== PRINT REPORT ==========
+        window.printReport = function() {
+            const original = document.body.innerHTML;
+            const printContent = document.getElementById('view-overview').cloneNode(true);
+            document.body.innerHTML = printContent.outerHTML;
+            window.print();
+            document.body.innerHTML = original;
+            location.reload();
+        };
+
+        // ========== INITIALIZATION ==========
         window.addEventListener('DOMContentLoaded', () => {
-            initializeApp();
+            loadMeta();
+            if (meta) showScreen('login');
+            else showScreen('setup');
         });
     </script>
 </body>
